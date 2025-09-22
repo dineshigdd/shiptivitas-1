@@ -63,70 +63,80 @@ export default class Board extends React.Component {
   
        Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ])
         
-          .on('drop',(el )=>
+          .on('drop',(el ,target, source, sibling )=>
             {
               const id = el.dataset.id ;
               const status = el.dataset.status;
+               // 1️⃣ Immediately cancel Dragula's DOM move
+              // This prevents the node mismatch problem
               
-              if(el.parentElement.parentElement.firstChild.textContent){
-                //  const newStatus = el.parentElement.parentElement.firstChild.textContent;
-                const newStatus = el.closest(".Swimlane-column").querySelector(".Swimlane-title").textContent.trim();         
+              
+              if(el.closest(".Swimlane-column").querySelector(".Swimlane-title").textContent){
+                         
 
+                const newStatus = el.closest(".Swimlane-column").querySelector(".Swimlane-title").textContent.trim();        
+              
                 
                   this.setState( prevState =>{
                       
-                      const updatedClients = {
+                      const clients = {
                           backlog: [...prevState.clients.backlog],
                           inProgress: [...prevState.clients.inProgress],
                           complete: [...prevState.clients.complete],
                       };
 
                       let sourceClientGroup = [];
-                      //find the source grop that card belongs to
-                      if( status === 'in-progress'){
-                        // sourceClientGroup = [... updatedClients[ 'inProgress' ]];
-                        sourceClientGroup = updatedClients.inProgress;
+                      let targetGroup = [];
+
+                      //find the source group that card belongs to
+                      if( status === 'in-progress'){                                
+                        sourceClientGroup = clients.inProgress;
                       }else{
-                        sourceClientGroup =  updatedClients[ status ] ;
+                        
+                        sourceClientGroup =  clients[ status.toLowerCase() ] ;
                       }
-                    //find the client to update
-                      // const clientToUpdate = { ... Object.values( sourceClientGroup ).find( client => client.id === id )  }        
+                       
+                   
+                      //find the client to be updated
                         const clientToUpdate = sourceClientGroup.find( client => client.id === id );
                         
-                      if( newStatus === 'In Progress'){
-                          clientToUpdate.status = 'in-progress';
-                                                
-                          // const nextKey = Object.keys( updatedClients[ 'inProgress' ]).length;    
+                      //changing the status of the client
+                      if( newStatus === 'In Progress' ){
+                       
+                          clientToUpdate.status = 'in-progress';                             
                         
-                          const targetGroup = [ ...updatedClients[ 'inProgress' ]]
-                          targetGroup[ nextKey ]= clientToUpdate;                                     
-                          // updatedClients[ 'inProgress' ].push(  targetGroup[ nextKey ] )                       
+                          targetGroup = [ ...clients.inProgress ]
+                          targetGroup.push(  clientToUpdate )            
+                          clients.inProgress = targetGroup;
+
+                          sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
+                          clients.backlog = sourceClientGroup;
+                          
+                      }else if( newStatus === 'Complete'){             
+
+                            clientToUpdate.status = 'complete';
+                       
+                            targetGroup = [ ...clients.complete]
+                            targetGroup.push(  clientToUpdate )
+                            clients.complete = targetGroup;       
+                                                           
+                            sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
+                            clients.inProgress= sourceClientGroup;
+                          
+                        }           
+
+                     
                         
-                           updatedClients[ 'inProgress' ] = targetGroup;
-                           console.log(  updatedClients[ 'inProgress' ] )
-                      }else{                                            
-                      
-                          clientToUpdate.status = newStatus.toLocaleLowerCase();
-                      }                                                                      
+                          // 1️⃣ Immediately cancel Dragula's DOM move
+                          // This prevents the node mismatch problem  between React and Dragula                   
+                          if (source !== target ) {
+                                source.insertBefore(el, sibling); 
+                          }
 
-                      //to do://remove the client from old group
-                         
-                          sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id ) ;
-                          const sourceKey =  updatedClients[ status ].length;    
-
-
-                          updatedClients[ status ] = sourceClientGroup;
-                          console.log(  updatedClients[ status ]  )
-                      
-                      // // Put it back into the group
-                      // updatedClientGroup[ el.dataset.id ] = clientToUpdate;
-
-                      // // Put the group back into the clients object
-                      // updatedClients[el.dataset.status] = updatedClientGroup;
-                      
+                          
                       
                     return {
-                      clients: updatedClients
+                      clients
                     };
 
 
