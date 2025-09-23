@@ -60,13 +60,14 @@ export default class Board extends React.Component {
   }
 
   componentDidMount(){    
-  
+
        Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ])
-        
-          .on('drop',(el ,target, source, sibling )=>
+          .on('drop',(el, target, source, sibling)=>
             {
               const id = el.dataset.id ;
               const status = el.dataset.status;
+              console.log( el)
+              console.log( status)
                // 1️⃣ Immediately cancel Dragula's DOM move
               // This prevents the node mismatch problem
               
@@ -91,9 +92,8 @@ export default class Board extends React.Component {
                       //find the source group that card belongs to
                       if( status === 'in-progress'){                                
                         sourceClientGroup = clients.inProgress;
-                      }else{
-                        
-                        sourceClientGroup =  clients[ status.toLowerCase() ] ;
+                      }else{                        
+                        sourceClientGroup =  clients.backlog ;
                       }
                        
                    
@@ -124,13 +124,17 @@ export default class Board extends React.Component {
                             clients.inProgress= sourceClientGroup;
                           
                         }           
-
+                        //to do
+                        //I should be able to drop a card at any point in the targetted lane
                      
                         
                           // 1️⃣ Immediately cancel Dragula's DOM move
-                          // This prevents the node mismatch problem  between React and Dragula                   
+                          // // This prevents the node mismatch problem  between React and Dragula           
+                    
                           if (source !== target ) {
                                 source.insertBefore(el, sibling); 
+                          }else{
+                                target.insertBefore(el, sibling);
                           }
 
                           
