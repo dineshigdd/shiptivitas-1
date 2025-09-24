@@ -59,25 +59,29 @@ export default class Board extends React.Component {
     );
   }
 
+ 
+  
   componentDidMount(){    
 
        Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ])
           .on('drop',(el, target, source, sibling)=>
             {
-              const id = el.dataset.id ;
-              const status = el.dataset.status;
-              console.log( el)
-              console.log( status)
-               // 1️⃣ Immediately cancel Dragula's DOM move
-              // This prevents the node mismatch problem
-              
-              
-              if(el.closest(".Swimlane-column").querySelector(".Swimlane-title").textContent){
-                         
+              const swimlaneColumn = el.closest(".Swimlane-column");
+              if (!swimlaneColumn) return; // Safeguard
 
-                const newStatus = el.closest(".Swimlane-column").querySelector(".Swimlane-title").textContent.trim();        
+              const titleElement = swimlaneColumn.querySelector(".Swimlane-title");
+              if (!titleElement) return; // Safeguard
+
+              const newStatus = titleElement.textContent.trim();
+              const id = el.dataset.id;
+              const status = el.dataset.status;
+
+              // ❗ Cancel Dragula's default DOM move
+              // React will re-render and place the element
+              el.remove();
               
-                
+        
+                 
                   this.setState( prevState =>{
                       
                       const clients = {
@@ -86,30 +90,34 @@ export default class Board extends React.Component {
                           complete: [...prevState.clients.complete],
                       };
 
-                      let sourceClientGroup = [];
-                      let targetGroup = [];
+                      let sourceClientGroup;
+                     
 
                       //find the source group that card belongs to
-                      if( status === 'in-progress'){                                
-                        sourceClientGroup = clients.inProgress;
-                      }else{                        
-                        sourceClientGroup =  clients.backlog ;
-                      }
+                       if (status === 'in-progress') {
+                          sourceClientGroup = clients.inProgress;
+                        } else if (status === 'complete') {
+                          sourceClientGroup = clients.complete;
+                        } else {
+                          sourceClientGroup = clients.backlog;
+                        }
                        
                    
                       //find the client to be updated
                         const clientToUpdate = sourceClientGroup.find( client => client.id === id );
+                        if (!clientToUpdate) return { clients }; // Safety check
                         
                       //changing the status of the client
+                       let targetGroup;
                       if( newStatus === 'In Progress' ){
                        
                           clientToUpdate.status = 'in-progress';                             
                         
                           targetGroup = [ ...clients.inProgress ]
-                          targetGroup.push(  clientToUpdate )            
+                          // targetGroup.push(  clientToUpdate )            
                           clients.inProgress = targetGroup;
 
-                          sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
+                         
                           clients.backlog = sourceClientGroup;
                           
                       }else if( newStatus === 'Complete'){             
@@ -117,35 +125,39 @@ export default class Board extends React.Component {
                             clientToUpdate.status = 'complete';
                        
                             targetGroup = [ ...clients.complete]
-                            targetGroup.push(  clientToUpdate )
+                            // targetGroup.push(  clientToUpdate )
                             clients.complete = targetGroup;       
                                                            
-                            sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
-                            clients.inProgress= sourceClientGroup;
+                            
+                           
                           
-                        }           
-                        //to do
-                        //I should be able to drop a card at any point in the targetted lane
-                     
+                        }       
                         
+                         sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
+                        
+
+                         const siblingIndex = sibling
+                          ? Array.from(target.children).indexOf(sibling)
+                          : targetGroup.length; // append at end if no sibling
+                        console.log( siblingIndex)
+                        targetGroup.splice(siblingIndex, 0, clientToUpdate);
+                                            
                           // 1️⃣ Immediately cancel Dragula's DOM move
                           // // This prevents the node mismatch problem  between React and Dragula           
                     
-                          if (source !== target ) {
-                                source.insertBefore(el, sibling); 
-                          }else{
-                                target.insertBefore(el, sibling);
-                          }
+                          // if (source !== target ) {
+                          //       source.insertBefore(el, sibling); 
+                          // }
 
                           
                       
                     return {
-                      clients
+                      clients 
                     };
 
 
                   })
-            }
+          
 
               
           })
@@ -153,8 +165,6 @@ export default class Board extends React.Component {
        
       
   }
-
-  
 
 
   render() {
