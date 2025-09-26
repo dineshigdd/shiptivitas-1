@@ -62,28 +62,50 @@ export default class Board extends React.Component {
  
   
   componentDidMount(){    
+      
+       Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ],
+         {
+         accepts: (el, target, source) =>   {
+                if( target === this.swimlanes.backlog.current &&  source === this.swimlanes.inProgress.current ) {
+                  return false;
+                }
+                
+                if( target === this.swimlanes.backlog.current && source === this.swimlanes.complete.current  ){
+                  return false;
+                }
 
-       Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ])
+                if( target === this.swimlanes.inProgress.current && source ===  this.swimlanes.complete.current ){
+                  return false;
+                }                
+                
+                if( target === this.swimlanes.complete.current && source === this.swimlanes.backlog.current ){
+                  return false;
+                }
+
+                return true;                
+             }
+       
+        }
+        )
           .on('drop',(el, target, source, sibling)=>
             {
               const swimlaneColumn = el.closest(".Swimlane-column");
-              if (!swimlaneColumn) return; // Safeguard
+              if (!swimlaneColumn) return; // for Safeguard
 
               const titleElement = swimlaneColumn.querySelector(".Swimlane-title");
-              if (!titleElement) return; // Safeguard
+              if (!titleElement) return; // for Safeguard
 
               const newStatus = titleElement.textContent.trim();
+              
               const id = el.dataset.id;
               const status = el.dataset.status;
 
-              // ❗ Cancel Dragula's default DOM move
-              // React will re-render and place the element
-              el.remove();
               
-        
-                 
+              if( target !== source ){
+                  el.remove()
                   this.setState( prevState =>{
                       
+                    
                       const clients = {
                           backlog: [...prevState.clients.backlog],
                           inProgress: [...prevState.clients.inProgress],
@@ -111,59 +133,43 @@ export default class Board extends React.Component {
                        let targetGroup;
                       if( newStatus === 'In Progress' ){
                        
-                          clientToUpdate.status = 'in-progress';                             
-                        
-                          targetGroup = [ ...clients.inProgress ]
-                          // targetGroup.push(  clientToUpdate )            
-                          clients.inProgress = targetGroup;
-
-                         
+                          clientToUpdate.status = 'in-progress';         
+                          targetGroup = [ ...clients.inProgress ]                              
+                          clients.inProgress = targetGroup;                         
                           clients.backlog = sourceClientGroup;
                           
                       }else if( newStatus === 'Complete'){             
 
-                            clientToUpdate.status = 'complete';
-                       
-                            targetGroup = [ ...clients.complete]
-                            // targetGroup.push(  clientToUpdate )
-                            clients.complete = targetGroup;       
-                                                           
-                            
-                           
+                            clientToUpdate.status = 'complete';                       
+                            targetGroup = [ ...clients.complete]                            
+                            clients.complete = targetGroup;                                                                 
+                            clients.inProgress = sourceClientGroup;                           
                           
                         }       
-                        
-                         sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
-                        
 
-                         const siblingIndex = sibling
-                          ? Array.from(target.children).indexOf(sibling)
-                          : targetGroup.length; // append at end if no sibling
-                        console.log( siblingIndex)
-                        targetGroup.splice(siblingIndex, 0, clientToUpdate);
+                        //remove the moved card from the source                       
+                        sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
+                        
+                                               
+                        
+                         let siblingIndex;
+                         siblingIndex = sibling
+                            ? Array.from(target.children).indexOf(sibling)
+                            : targetGroup.length; // append at end if no sibling
+                         
+                         if( targetGroup) {
+                              targetGroup.splice(siblingIndex, 0, clientToUpdate);
+                          }                          
                                             
-                          // 1️⃣ Immediately cancel Dragula's DOM move
-                          // // This prevents the node mismatch problem  between React and Dragula           
-                    
-                          // if (source !== target ) {
-                          //       source.insertBefore(el, sibling); 
-                          // }
-
-                          
+                                                   
                       
                     return {
                       clients 
-                    };
-
+                    };                   
 
                   })
-          
-
-              
-          })
-     
-       
-      
+                }             
+          })     
   }
 
 
