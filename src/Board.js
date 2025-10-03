@@ -69,9 +69,7 @@ export default class Board extends React.Component {
                 return true;                
              }
        
-        }
-        )
-          .on('drop',(el, target, source, sibling)=>
+        }).on('drop',(el, target, source, sibling)=>
             {
               const swimlaneColumn = el.closest(".Swimlane-column");
               if (!swimlaneColumn) return; // for Safeguard
@@ -80,9 +78,12 @@ export default class Board extends React.Component {
               if (!titleElement) return; // for Safeguard
 
               const newStatus = titleElement.textContent.trim();
-              
               const id = el.dataset.id;
               const status = el.dataset.status;
+              let clientToUpdate = null; 
+              let siblingIndex;              
+              let sourceClientGroup;
+
               console.log(id )
               
               if( target !== source ){
@@ -96,7 +97,7 @@ export default class Board extends React.Component {
                           complete: [...prevState.clients.complete],
                       };
                   
-                      let sourceClientGroup;
+                 
                    
 
                       //find the source group that card belongs to
@@ -110,7 +111,7 @@ export default class Board extends React.Component {
                        
                    
                       //find the client to be updated
-                        const clientToUpdate = sourceClientGroup.find( client => client.id === Number( id ));                        
+                        clientToUpdate = sourceClientGroup.find( client => client.id === Number( id ));                        
                         if (!clientToUpdate) return { clients }; // Safety check
                         
                       //changing the status of the client
@@ -125,39 +126,89 @@ export default class Board extends React.Component {
                           
                       }else if( newStatus === 'Complete'){             
 
-                            clientToUpdate.status = 'complete';                       
-                            targetGroup = [ ...clients.complete]                            
-                            clients.complete = targetGroup;                                                                 
-                            clients.inProgress = sourceClientGroup;                           
+                          clientToUpdate.status = 'complete';                       
+                          targetGroup = [ ...clients.complete]                            
+                          clients.complete = targetGroup;                                                                 
+                          clients.inProgress = sourceClientGroup;                           
                           
                         }       
 
                         //remove the moved card from the source                       
-                        sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );
-                       
-                                               
+                        sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );                                             
                         
-                         let siblingIndex;
+                      
                          siblingIndex = sibling
                             ? Array.from(target.children).indexOf(sibling)
                             : targetGroup.length; // append at end if no sibling
-                         
+                        
                          if( targetGroup) {
                               targetGroup.splice(siblingIndex, 0, clientToUpdate);
-                          }                          
-                                            
-                                                   
+                          }                       
+                                                                                     
                       
                     return {
                       clients 
                     };                   
+                    
+                  },     
+                      ()=> { clientToUpdate && this.sendToAPI( clientToUpdate , siblingIndex ) }                 
 
-                  })
-                }             
-          }) 
+                  );
+                 
+                }else{ //when the swimlane does not change,and client moves up/down in the samw swimlane
+
+                  //get new index from the swimlane elements             
+                   const updatedSourceGroup =  Array.from(source.children);
+                   const newIndex = updatedSourceGroup.indexOf( el );          
+                  
+
+                  //getting the source group in the statw
+                     (  status === 'in-progress' ) ?  
+                      ( sourceClientGroup =  [... this.state.clients.inProgress ]):   
+                      ( sourceClientGroup =  [... this.state.clients[ status ] ]);                   
+                    
+                  //getting the previous Index of the client in the state
+                    const client = ( sourceClientGroup.find( client => client.id === Number(id)) );
+                    const prevIndex = sourceClientGroup.indexOf( client );
+                    
+                  //Changing the priority in the source Group in the state
+                    sourceClientGroup.splice( prevIndex , 1 )
+                    sourceClientGroup.splice( newIndex, 0 , client)
+                    
+                  //updating the state                  
+                  this.setState( prevState => {
+                     if( status === 'in-progress'){
+                        return [... prevState.clients.inProgress = sourceClientGroup ];
+                      }
+
+                     return [... prevState.clients[ status] = sourceClientGroup ];
+
+                  });
+
+                }               
+          })
+          
     
   }
     
+
+  sendToAPI(clientToUpdate, priority ){   
+   
+    fetch(`/api/v1/clients/${ clientToUpdate.id }`, {
+        method:'PUT',   
+        headers:{
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          status:clientToUpdate.status,
+          priority: priority,
+        })
+      }
+   ).then( res => console.log( res ))
+  
+  }
+
+   
   async componentDidMount(){    
         const clients = await this.getClients();     
          
@@ -170,6 +221,7 @@ export default class Board extends React.Component {
      
         this.setState( { clients: categorizedClients });        
         this.renderDragula();
+        
         
   }
 
@@ -194,3 +246,37 @@ export default class Board extends React.Component {
     );
   }
 }
+
+//  sourceClientGroup.
+                  //     this.setState( prevState => {
+
+                  //     sourceClientGroup = {  ... prevState.clients };
+                  //     console.log( "Array.from(source.children)" );
+                  //     const client = ( updatedSourceGroup.find( client => client.id = Number( id )));
+
+                  //     const clientIndex = updatedSourceGroup.indexOf(  client => client.id = Number( id ) );
+                  //     console.log( clientIndex)
+                  //     sourceClientGroup[ sourceClientGroupKey] = updatedSourceGroup;
+                      
+                  //     return { sourceClientGroup }
+                  //  })
+
+                  // console.log( this.state.clients[ sourceClientGroupKey ])
+                  //  (  status === 'in-progress' ) ?  
+                  //     ( sourceClientGroup =  this.state.clients.inProgress ):   
+                  //     ( sourceClientGroup =  this.state.clients[ status ] );
+                  //    console.log( sourceClientGroup)
+                  //   const client = ( sourceClientGroup.find( client => client.id === Number(id)) );
+                    // const clientIndex = sourceClientGroup.indexOf( client );
+                                       
+                    // const newIndex = sibling
+                    //         ? Array.from(source.children).indexOf(el)
+                    //         : sourceClientGroup.length; // append at end if no sibling
+
+                    // console.log( 'newIndex:' + newIndex  );
+
+                    // let newCourceGroup = [ ... sourceClientGroup ];
+                    // newCourceGroup.splice( newIndex, 0, client )
+
+
+                    // console.log( newCourceGroup)
