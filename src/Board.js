@@ -49,7 +49,7 @@ export default class Board extends React.Component {
   }
 
   renderDragula(){
-    Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ],
+    const drake = Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ],
          {
          accepts: (el, target, source) =>   {
                 if( target === this.swimlanes.backlog.current &&  source === this.swimlanes.inProgress.current ) {
@@ -71,7 +71,9 @@ export default class Board extends React.Component {
                 return true;                
              }
        
-        }).on('drop',(el, target, source, sibling)=>
+        });
+        
+        drake.on('drop',(el, target, source, sibling)=>
             {
               const swimlaneColumn = el.closest(".Swimlane-column");
               if (!swimlaneColumn) return; // for Safeguard
@@ -83,11 +85,10 @@ export default class Board extends React.Component {
               const id = el.dataset.id;
               const status = el.dataset.status;
               let clientToUpdate = null; 
-              let siblingIndex;              
-             
+              let siblingIndex;       
               let clients;
 
-              console.log(id )
+
               
               if( target !== source ){
                   el.remove()
@@ -100,7 +101,7 @@ export default class Board extends React.Component {
                           complete: [...prevState.clients.complete],
                       };
                   
-                 
+                  
                    
                        let sourceClientGroup;
                       //find the source group that card belongs to
@@ -162,6 +163,11 @@ export default class Board extends React.Component {
                                          
 
                   );
+                 /*   drake.cancel( true )  to  prevent 
+                 the error NotFoundError: Failed to execute 'removeChild' 
+                 on 'Node': The node to be removed is not a child of this node. */   
+                 drake.cancel( true )               
+                 this.categorizedClients()
                  
                 }else{ //when the swimlane does not change,and client moves up/down in the samw swimlane
                   this.setPriority( el, source, status , id )
@@ -189,8 +195,8 @@ export default class Board extends React.Component {
                   //getting the source group in the state
                      let sourceClientGroup;
                      (  status === 'in-progress' ) ?  
-                      ( sourceClientGroup =  [... this.state.clients.inProgress ]):   
-                      ( sourceClientGroup =  [... this.state.clients[ status ] ]);                   
+                      ( sourceClientGroup =  [...this.state.clients.inProgress ]):   
+                      ( sourceClientGroup =  [...this.state.clients[ status ] ]);                   
                     
                   //getting the previous Index of the client in the state
                     const client = ( sourceClientGroup.find( client => client.id === Number(id)) );
@@ -203,10 +209,10 @@ export default class Board extends React.Component {
                   //updating the state                  
                     this.setState( prevState => {
                      if( status === 'in-progress'){
-                        return [... prevState.clients.inProgress = sourceClientGroup ];
+                        return [...prevState.clients.inProgress = sourceClientGroup ];
                       }
 
-                     return [... prevState.clients[ status] = sourceClientGroup ];
+                     return [...prevState.clients[ status] = sourceClientGroup ];
 
                     },
                    
@@ -246,6 +252,16 @@ export default class Board extends React.Component {
 
   sortClientsOnPriority( categorizedClientsArr ){  
      return categorizedClientsArr.sort( ( client_1, client_2) =>  client_1.priority - client_2.priority );
+  }
+
+  categorizedClients(){
+    this.setState({ clients:{          
+            backlog: this.state.clients.backlog.filter(client => !client.status || client.status === 'backlog'),
+            inProgress: this.state.clients.inProgress.filter(client => client.status && client.status === 'in-progress'),
+            complete: this.state.clients.complete.filter(client => client.status && client.status === 'complete'),
+          }   
+   })
+    
   }
 
   async componentDidMount(){    
