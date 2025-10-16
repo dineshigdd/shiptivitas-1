@@ -50,28 +50,31 @@ export default class Board extends React.Component {
 
   renderDragula(){
     const drake = Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ],
-        //  {
-        //  accepts: (el, target, source) =>   {
-        //         if( target === this.swimlanes.backlog.current &&  source === this.swimlanes.inProgress.current ) {
-        //           return false;
-        //         }
+         {
+         accepts: (el, target, source) =>   {
+                // if( target === this.swimlanes.backlog.current &&  source === this.swimlanes.inProgress.current ) {
+                //   return false;
+                // }
                 
-        //         if( target === this.swimlanes.backlog.current && source === this.swimlanes.complete.current  ){
-        //           return false;
-        //         }
+                if( target === this.swimlanes.backlog.current && source === this.swimlanes.complete.current  ){
+                  return false;
+                }
 
-        //         if( target === this.swimlanes.inProgress.current && source ===  this.swimlanes.complete.current ){
-        //           return false;
-        //         }                
+                // if( target === this.swimlanes.inProgress.current && source ===  this.swimlanes.complete.current ){
+                //   return false;
+                // }                
                 
-        //         if( target === this.swimlanes.complete.current && source === this.swimlanes.backlog.current ){
-        //           return false;
-        //         }
+                if( target === this.swimlanes.complete.current && source === this.swimlanes.backlog.current ){
+                  return false;
+                }
 
-        //         return true;                
-        //      }
+                return true;                
+             }
        
-        // }
+        },
+        { 
+          revertOnSpill: true
+        }
       );
         
         drake.on('drop',(el, target, source, sibling)=>
@@ -101,10 +104,9 @@ export default class Board extends React.Component {
                           inProgress: [...prevState.clients.inProgress],
                           complete: [...prevState.clients.complete],
                       };
-                  
-                  
+                                    
                    
-                      //  let sourceClientGroup;
+                     
                       //find the source group that card belongs to
                        if (status === 'in-progress') {
                           sourceClientGroup = clients.inProgress;
@@ -120,22 +122,30 @@ export default class Board extends React.Component {
                         if (!clientToUpdate) return { clients }; // Safety check
                         
                       //changing the status of the client
-                      //  let targetGroup;
-                      if( newStatus === 'In Progress' ){
-
+                        if( newStatus === 'In Progress' ){
                           clientToUpdate.status = 'in-progress';                           
                           targetGroup = [ ...clients.inProgress ]                              
-                          clients.inProgress = targetGroup;                         
-                          clients.backlog = sourceClientGroup;
+                          clients.inProgress = targetGroup;  
                           
-                      }else if( newStatus === 'Complete'){             
-
+                            if( status === 'backlog'){
+                                clients.backlog = sourceClientGroup;
+                            }else if( status === 'complete '){
+                                clients.complete = sourceClientGroup;
+                            }
+                         
+                          
+                        }else if( newStatus === 'Complete'){          
                           clientToUpdate.status = 'complete';                       
                           targetGroup = [ ...clients.complete]                            
                           clients.complete = targetGroup;                                                                 
                           clients.inProgress = sourceClientGroup;                           
                           
-                        }       
+                       }else{
+                         clientToUpdate.status = 'backlog'; 
+                         targetGroup = [ ...clients.backlog ]
+                         clients.backlog = targetGroup;
+                         clients.inProgress = sourceClientGroup
+                      }       
                        
                         //remove the moved card from the source                       
                         sourceClientGroup = sourceClientGroup.filter( client =>  client.id !== clientToUpdate.id );                                             
@@ -155,13 +165,7 @@ export default class Board extends React.Component {
                     };                   
                     
                   },  
-                      // ()=>  this.setPriorityAndStatus( clients )   
-                      // ()=> { 
-                      //   const priority = siblingIndex + 1;
-                      //   clientToUpdate && 
-                      //   this.sendToAPI( clientToUpdate , priority   ) 
-                      // }
-                      
+                                            
                   );
                  /*   drake.cancel( true )  to  prevent 
                  the error NotFoundError: Failed to execute 'removeChild' 
@@ -170,10 +174,7 @@ export default class Board extends React.Component {
                  this.categorizedClients()
                  this.setPriorityAndStatus( sourceClientGroup, targetGroup )
                 }else{ //when the swimlane does not change,and client moves up/down in the samw swimlane
-                  this.setPriority( el, source, status , id )
-                 
-                  
-                  
+                 this.setPriority( el, source, status , id )                       
                 }  
                 
                
@@ -181,7 +182,7 @@ export default class Board extends React.Component {
           
     
   }
-  
+  //send data about changing status and priority
   setPriorityAndStatus(sourceClientGroup, targetGroup ){
     
       fetch('/api/v1/clients/lane-change',{
@@ -197,8 +198,10 @@ export default class Board extends React.Component {
         }).then( res => console.log( res ))
   }
 
+
+   //change priority in the same swimlane ,and send request to backend
   setPriority( el, source, status , id  ){
-     //get new index from the swimlane elements             
+                   //get new index from the swimlane elements             
           
                    const updatedSourceGroup =  Array.from(source.children);
                    const priority = updatedSourceGroup.indexOf( el );          
@@ -245,6 +248,7 @@ export default class Board extends React.Component {
                 
                   
   }
+
 
   sendToAPI(clientToUpdate, priority ){   
    
