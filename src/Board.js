@@ -50,28 +50,29 @@ export default class Board extends React.Component {
 
   renderDragula(){
     const drake = Dragula([ this.swimlanes.backlog.current, this.swimlanes.inProgress.current, this.swimlanes.complete.current ],
-         {
-         accepts: (el, target, source) =>   {
-                if( target === this.swimlanes.backlog.current &&  source === this.swimlanes.inProgress.current ) {
-                  return false;
-                }
+        //  {
+        //  accepts: (el, target, source) =>   {
+        //         if( target === this.swimlanes.backlog.current &&  source === this.swimlanes.inProgress.current ) {
+        //           return false;
+        //         }
                 
-                if( target === this.swimlanes.backlog.current && source === this.swimlanes.complete.current  ){
-                  return false;
-                }
+        //         if( target === this.swimlanes.backlog.current && source === this.swimlanes.complete.current  ){
+        //           return false;
+        //         }
 
-                if( target === this.swimlanes.inProgress.current && source ===  this.swimlanes.complete.current ){
-                  return false;
-                }                
+        //         if( target === this.swimlanes.inProgress.current && source ===  this.swimlanes.complete.current ){
+        //           return false;
+        //         }                
                 
-                if( target === this.swimlanes.complete.current && source === this.swimlanes.backlog.current ){
-                  return false;
-                }
+        //         if( target === this.swimlanes.complete.current && source === this.swimlanes.backlog.current ){
+        //           return false;
+        //         }
 
-                return true;                
-             }
+        //         return true;                
+        //      }
        
-        });
+        // }
+      );
         
         drake.on('drop',(el, target, source, sibling)=>
             {
@@ -87,8 +88,8 @@ export default class Board extends React.Component {
               let clientToUpdate = null; 
               let siblingIndex;       
               let clients;
-
-
+              let sourceClientGroup;
+              let targetGroup;
               
               if( target !== source ){
                   el.remove()
@@ -103,7 +104,7 @@ export default class Board extends React.Component {
                   
                   
                    
-                       let sourceClientGroup;
+                      //  let sourceClientGroup;
                       //find the source group that card belongs to
                        if (status === 'in-progress') {
                           sourceClientGroup = clients.inProgress;
@@ -119,7 +120,7 @@ export default class Board extends React.Component {
                         if (!clientToUpdate) return { clients }; // Safety check
                         
                       //changing the status of the client
-                       let targetGroup;
+                      //  let targetGroup;
                       if( newStatus === 'In Progress' ){
 
                           clientToUpdate.status = 'in-progress';                           
@@ -160,15 +161,14 @@ export default class Board extends React.Component {
                       //   clientToUpdate && 
                       //   this.sendToAPI( clientToUpdate , priority   ) 
                       // }
-                                         
-
+                      
                   );
                  /*   drake.cancel( true )  to  prevent 
                  the error NotFoundError: Failed to execute 'removeChild' 
                  on 'Node': The node to be removed is not a child of this node. */   
                  drake.cancel( true )               
                  this.categorizedClients()
-                 
+                 this.setPriorityAndStatus( sourceClientGroup, targetGroup )
                 }else{ //when the swimlane does not change,and client moves up/down in the samw swimlane
                   this.setPriority( el, source, status , id )
                  
@@ -182,8 +182,19 @@ export default class Board extends React.Component {
     
   }
   
-  setPriorityAndStatus(clients){
-      console.log( clients )
+  setPriorityAndStatus(sourceClientGroup, targetGroup ){
+    
+      fetch('/api/v1/clients/lane-change',{
+                        method:'PUT',
+                        headers:{
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            sourceClientGroup,
+                            targetGroup
+                            
+                        })
+        }).then( res => console.log( res ))
   }
 
   setPriority( el, source, status , id  ){
@@ -231,6 +242,7 @@ export default class Board extends React.Component {
 
                     }
                   );
+                
                   
   }
 
@@ -250,6 +262,8 @@ export default class Board extends React.Component {
   
   }
 
+  //as sorted clients based on priorty is received from the backend this function is not neccsary.
+  //I added this function as only as an exttra layer if unsorted clients are received due to a backend error
   sortClientsOnPriority( categorizedClientsArr ){  
      return categorizedClientsArr.sort( ( client_1, client_2) =>  client_1.priority - client_2.priority );
   }
