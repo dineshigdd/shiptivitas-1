@@ -172,7 +172,7 @@ export default class Board extends React.Component {
                  on 'Node': The node to be removed is not a child of this node. */   
                  drake.cancel( true )               
                  this.categorizedClients()
-                 this.setPriorityAndStatus( sourceClientGroup, targetGroup )
+                 clientToUpdate && this.sendToAPI( clientToUpdate, siblingIndex + 1 )  
                 }else{ //when the swimlane does not change,and client moves up/down in the samw swimlane
                  this.setPriority( el, source, status , id )                       
                 }  
