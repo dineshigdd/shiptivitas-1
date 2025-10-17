@@ -173,7 +173,7 @@ export default class Board extends React.Component {
                  drake.cancel( true )               
                  this.categorizedClients()
                  clientToUpdate && this.sendToAPI( clientToUpdate, siblingIndex + 1 )  
-                }else{ //when the swimlane does not change,and client moves up/down in the samw swimlane
+                }else{ //when the swimlane does not change,and client moves up/down in the same swimlane
                  this.setPriority( el, source, status , id )                       
                 }  
                 
@@ -182,22 +182,7 @@ export default class Board extends React.Component {
           
     
   }
-  //send data about changing status and priority
-  setPriorityAndStatus(sourceClientGroup, targetGroup ){
-    
-      fetch('/api/v1/clients/lane-change',{
-                        method:'PUT',
-                        headers:{
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ 
-                            sourceClientGroup,
-                            targetGroup
-                            
-                        })
-        }).then( res => console.log( res ))
-  }
-
+ 
 
    //change priority in the same swimlane ,and send request to backend
   setPriority( el, source, status , id  ){
